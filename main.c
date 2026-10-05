@@ -82,6 +82,21 @@ int main(int argc, char * argv[])
       C[i * width + j] = parse_byte(ptr++, STD_DISP);
     }
   }
+
+  int d_height = parse_byte(ptr, DW_DH_SIZE);
+  ptr += DW_DH_SIZE;
+  int d_width = parse_byte(ptr, DW_DH_SIZE);
+  ptr += DW_DH_SIZE;
+  int * D = (int *)calloc(d_width * d_height, sizeof(int));
+  if (D == NULL) {
+    printf("\t<ERROR> : not enough memory\n");
+    return 2;
+  }
+  for (size_t i = 0; i < d_height; i++) {
+    for (size_t j = 0; j < d_width; j++) {
+      D[i * d_width + j] = parse_byte(ptr++, STD_DISP);
+    }
+  }
 }
 
 int parse_byte(unsigned char * beg, int size)
