@@ -61,7 +61,14 @@ int main(int argc, char * argv[])
     fclose(output);
     return 2;
   }
-  fread(buffer, 1, size, input);
+  size_t read = fread(buffer, 1, size, input);
+  if (read != size) {
+    printf("\t<ERROR> : garbage read\n");
+    free(buffer);
+    fclose(input);
+    fclose(output);
+    return 2;
+  }
   buffer[size] = '\0';
   unsigned char * ptr = buffer;
 
@@ -118,6 +125,10 @@ int main(int argc, char * argv[])
   int * conv_C = (int *)malloc(width * height * sizeof(int));
   if (conv_A == NULL || conv_B == NULL || conv_C == NULL) {
     printf("\t<ERROR> : not enough memory\n");
+    free(A);
+    free(B);
+    free(C);
+    free(D);
     free(conv_A);
     free(conv_B);
     free(conv_C);
@@ -134,6 +145,10 @@ int main(int argc, char * argv[])
     fwrite(&conv_B[i], 1, 1, output);
     fwrite(&conv_C[i], 1, 1, output);
   }
+  free(A);
+  free(B);
+  free(C);
+  free(D);
   free(conv_A);
   free(conv_B);
   free(conv_C);
