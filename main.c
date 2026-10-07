@@ -57,6 +57,8 @@ int main(int argc, char * argv[])
   unsigned char * buffer = (unsigned char*)calloc(size + 1, 1);
   if (buffer == NULL) {
     printf("\t<ERROR> : not enough memory\n");
+    fclose(input);
+    fclose(output);
     return 2;
   }
   fread(buffer, 1, size, input);
@@ -73,6 +75,12 @@ int main(int argc, char * argv[])
   int * C = (int *)calloc(width * height, sizeof(int));
   if (A == NULL || B == NULL || C == NULL) {
     printf("\t<ERROR> : not enough memory\n");
+    free(A);
+    free(B);
+    free(C);
+    free(buffer);
+    fclose(input);
+    fclose(output);
     return 2;
   }
 
@@ -83,7 +91,17 @@ int main(int argc, char * argv[])
       C[i * width + j] = parse_byte(ptr++, STD_DISP);
     }
   }
-
+  for (size_t i = 0; i < width * height; i++) {
+    printf("%d ", A[i]);
+  }
+  printf("\n");
+  for (size_t i = 0; i < width * height; i++) {
+    printf("%d ", B[i]);
+  }
+  printf("\n");
+  for (size_t i = 0; i < width * height; i++) {
+    printf("%d ", C[i]);
+  }
   int d_height = parse_byte(ptr, DW_DH_SIZE);
   ptr += DW_DH_SIZE;
   int d_width = parse_byte(ptr, DW_DH_SIZE);
@@ -91,6 +109,12 @@ int main(int argc, char * argv[])
   int * D = (int *)calloc(d_width * d_height, sizeof(int));
   if (D == NULL) {
     printf("\t<ERROR> : not enough memory\n");
+    free(A);
+    free(B);
+    free(C);
+    free(buffer);
+    fclose(input);
+    fclose(output);
     return 2;
   }
   for (size_t i = 0; i < d_height; i++) {
@@ -98,10 +122,38 @@ int main(int argc, char * argv[])
       D[i * d_width + j] = parse_byte(ptr++, STD_DISP);
     }
   }
+  for (size_t i = 0; i < d_width * d_height; i++) {
+    printf("%d ", D[i]);
+  }
+  printf("\n");
   fclose(input);
   free(buffer);
   ptr = NULL;
-
+  int * conv_A = (int *)malloc(width * height * sizeof(int));
+  int * conv_B = (int *)malloc(width * height * sizeof(int));
+  int * conv_C = (int *)malloc(width * height * sizeof(int));
+  if (conv_A == NULL || conv_B == NULL || conv_C == NULL) {
+    printf("\t<ERROR> : not enough memory\n");
+    free(conv_A);
+    free(conv_B);
+    free(conv_C);
+    fclose(output);
+    return 2;
+  }
+  conv_A = convolution(A, width, height, D, d_width, d_height, conv_A);
+  conv_B = convolution(B, width, height, D, d_width, d_height, conv_B);
+  conv_C = convolution(C, width, height, D, d_width, d_height, conv_C);
+  for (size_t i = 0; i < width * height; i++) {
+    printf("%d ", conv_A[i]);
+  }
+  printf("\n");
+  for (size_t i = 0; i < width * height; i++) {
+    printf("%d ", conv_B[i]);
+  }
+  printf("\n");
+  for (size_t i = 0; i < width * height; i++) {
+    printf("%d ", conv_C[i]);
+  }
 }
 
 int parse_byte(unsigned char * beg, int size)
@@ -113,26 +165,21 @@ int parse_byte(unsigned char * beg, int size)
 
 int * convolution(int * A, int wA, int hA,int * D, int wD, int hD, int * result)
 {
-  int dw_centre = wD / 2 + 1;
-  int dh_centre = hD / 2 + 1;
+  int dw_centre = wD / 2;
+  int dh_centre = hD / 2;
   for (int i = 0; i < hA; i++) {
     for (int j = 0; j < wA; j++) {
-      int k = i - dh_centre > 0 ? i - dh_centre : 0;
-      int z = j - dw_centre > 0 ? j - dw_centre : 0;
-      int max_k = i + dh_centre <= hA - 1 ? i + dh_centre : hA - 1;
-      int max_z = j + dw_centre <= wA - 1 ? j + dw_centre : wA - 1;
       int tempResult = 0;
-      size_t i_D = 0;
-      size_t j_D = 0;
-      for (; k < max_k; k++) {
-        for (; z < max_z; z++) {
-          tempResult += A[k * hA + z] * D[i_D * hD + j_D];
-          j_D++;
+      for (int k = 0; k < hD; k++) {
+        for (int z = 0; z < wD; z++) {
+          int i_A = i + k - dh_centre;
+          int j_A = j + z - dw_centre;
+          if (i_A >= 0 && j_A >= 0 && i_A < wA && j_A < hA) {
+            tempResult += A[i_A * wA + j_A] * D[k * wD + z];
+          }
         }
-        i_D++;
-        j_D = 0;
       }
-      result[i * hA + j] = tempResult;
+      result[i * wA + j] = tempResult;
     }
   }
   return result;
