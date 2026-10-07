@@ -69,7 +69,6 @@ int main(int argc, char * argv[])
   ptr += WH_SIZE;
   int width = parse_byte(ptr, WH_SIZE);
   ptr += WH_SIZE;
-
   int * A = (int *)calloc(width * height, sizeof(int));
   int * B = (int *)calloc(width * height, sizeof(int));
   int * C = (int *)calloc(width * height, sizeof(int));
@@ -108,7 +107,7 @@ int main(int argc, char * argv[])
   }
   for (size_t i = 0; i < d_height; i++) {
     for (size_t j = 0; j < d_width; j++) {
-      D[i * d_width + j] = parse_byte(ptr++, STD_DISP);
+      D[i * d_width + j] = (signed char)*ptr++;
     }
   }
   fclose(input);
@@ -131,9 +130,9 @@ int main(int argc, char * argv[])
   fwrite(&height, sizeof(int), 1, output);
   fwrite(&width, sizeof(int), 1, output);
   for (size_t i = 0; i < width * height; i++) {
-    fwrite(&conv_A[i], sizeof(int8_t), 1, output);
-    fwrite(&conv_B[i], sizeof(int8_t), 1, output);
-    fwrite(&conv_C[i], sizeof(int8_t), 1, output);
+    fwrite(&conv_A[i], 1, 1, output);
+    fwrite(&conv_B[i], 1, 1, output);
+    fwrite(&conv_C[i], 1, 1, output);
   }
   free(conv_A);
   free(conv_B);
@@ -155,7 +154,7 @@ int * convolution(int * A, int wA, int hA,int * D, int wD, int hD, int * result)
   int dh_centre = hD / 2;
   for (int i = 0; i < hA; i++) {
     for (int j = 0; j < wA; j++) {
-      int tempResult = 0;
+      long long int tempResult = 0;
       for (int k = 0; k < hD; k++) {
         for (int z = 0; z < wD; z++) {
           int i_A = i + k - dh_centre;
@@ -169,6 +168,7 @@ int * convolution(int * A, int wA, int hA,int * D, int wD, int hD, int * result)
         tempResult %= 251;
       }
       else if (tempResult < 0) {
+        tempResult = -tempResult;
         tempResult %= 241;
       }
       result[i * wA + j] = tempResult;
