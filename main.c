@@ -8,6 +8,7 @@ const int DW_DH_SIZE = 2;
 const int STD_DISP = 1;
 
 int parse_byte(unsigned char * beg, int size);
+int * convolution(int * A, int wA, int hA,int * D, int wD, int hD, int * result);
 
 int main(int argc, char * argv[])
 {
@@ -97,11 +98,42 @@ int main(int argc, char * argv[])
       D[i * d_width + j] = parse_byte(ptr++, STD_DISP);
     }
   }
+  fclose(input);
+  free(buffer);
+  ptr = NULL;
+
 }
 
 int parse_byte(unsigned char * beg, int size)
 {
   int result = 0;
   memcpy(&result, beg, size);
+  return result;
+}
+
+int * convolution(int * A, int wA, int hA,int * D, int wD, int hD, int * result)
+{
+  int dw_centre = wD / 2 + 1;
+  int dh_centre = hD / 2 + 1;
+  for (int i = 0; i < hA; i++) {
+    for (int j = 0; j < wA; j++) {
+      int k = i - dh_centre > 0 ? i - dh_centre : 0;
+      int z = j - dw_centre > 0 ? j - dw_centre : 0;
+      int max_k = i + dh_centre <= hA - 1 ? i + dh_centre : hA - 1;
+      int max_z = j + dw_centre <= wA - 1 ? j + dw_centre : wA - 1;
+      int tempResult = 0;
+      size_t i_D = 0;
+      size_t j_D = 0;
+      for (; k < max_k; k++) {
+        for (; z < max_z; z++) {
+          tempResult += A[k * hA + z] * D[i_D * hD + j_D];
+          j_D++;
+        }
+        i_D++;
+        j_D = 0;
+      }
+      result[i * hA + j] = tempResult;
+    }
+  }
   return result;
 }
