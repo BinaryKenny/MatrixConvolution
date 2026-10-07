@@ -91,17 +91,6 @@ int main(int argc, char * argv[])
       C[i * width + j] = parse_byte(ptr++, STD_DISP);
     }
   }
-  for (size_t i = 0; i < width * height; i++) {
-    printf("%d ", A[i]);
-  }
-  printf("\n");
-  for (size_t i = 0; i < width * height; i++) {
-    printf("%d ", B[i]);
-  }
-  printf("\n");
-  for (size_t i = 0; i < width * height; i++) {
-    printf("%d ", C[i]);
-  }
   int d_height = parse_byte(ptr, DW_DH_SIZE);
   ptr += DW_DH_SIZE;
   int d_width = parse_byte(ptr, DW_DH_SIZE);
@@ -122,10 +111,6 @@ int main(int argc, char * argv[])
       D[i * d_width + j] = parse_byte(ptr++, STD_DISP);
     }
   }
-  for (size_t i = 0; i < d_width * d_height; i++) {
-    printf("%d ", D[i]);
-  }
-  printf("\n");
   fclose(input);
   free(buffer);
   ptr = NULL;
@@ -143,17 +128,18 @@ int main(int argc, char * argv[])
   conv_A = convolution(A, width, height, D, d_width, d_height, conv_A);
   conv_B = convolution(B, width, height, D, d_width, d_height, conv_B);
   conv_C = convolution(C, width, height, D, d_width, d_height, conv_C);
+  fwrite(&height, sizeof(int), 1, output);
+  fwrite(&width, sizeof(int), 1, output);
   for (size_t i = 0; i < width * height; i++) {
-    printf("%d ", conv_A[i]);
+    fwrite(&conv_A[i], sizeof(int8_t), 1, output);
+    fwrite(&conv_B[i], sizeof(int8_t), 1, output);
+    fwrite(&conv_C[i], sizeof(int8_t), 1, output);
   }
-  printf("\n");
-  for (size_t i = 0; i < width * height; i++) {
-    printf("%d ", conv_B[i]);
-  }
-  printf("\n");
-  for (size_t i = 0; i < width * height; i++) {
-    printf("%d ", conv_C[i]);
-  }
+  free(conv_A);
+  free(conv_B);
+  free(conv_C);
+  fclose(output);
+  return 0;
 }
 
 int parse_byte(unsigned char * beg, int size)
@@ -174,10 +160,16 @@ int * convolution(int * A, int wA, int hA,int * D, int wD, int hD, int * result)
         for (int z = 0; z < wD; z++) {
           int i_A = i + k - dh_centre;
           int j_A = j + z - dw_centre;
-          if (i_A >= 0 && j_A >= 0 && i_A < wA && j_A < hA) {
+          if (i_A >= 0 && j_A >= 0 && i_A < hA && j_A < wA) {
             tempResult += A[i_A * wA + j_A] * D[k * wD + z];
           }
         }
+      }
+      if (tempResult > 255) {
+        tempResult %= 251;
+      }
+      else if (tempResult < 0) {
+        tempResult %= 241;
       }
       result[i * wA + j] = tempResult;
     }
